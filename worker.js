@@ -98,12 +98,9 @@ export default {
         const totalCount = Number(body.total_count || 12);
 
         const allowedPlans = [
-  "plan_TcO53PTmdNI5zF",
-  "plan_TcO8Kc2dHywGUf",
-];
-          
-    
-        
+          "plan_TcO53PTmdNI5zF",
+          "plan_TcO8Kc2dHywGUf",
+        ];
 
         if (!allowedPlans.includes(planId)) {
           return json({
