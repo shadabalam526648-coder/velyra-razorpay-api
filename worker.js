@@ -23,32 +23,41 @@ export default {
     if (request.method === "POST" && url.pathname === "/create-order") {
       try {
         if (!env.RAZORPAY_KEY_ID || !env.RAZORPAY_KEY_SECRET) {
-          return json({ success: false, error: "Razorpay credentials not configured." }, 500);
+          return json({
+            success: false,
+            error: "Razorpay credentials not configured.",
+          }, 500);
         }
 
         const body = await request.json();
         const amount = Number(body.amount);
 
         if (!Number.isInteger(amount) || amount < 1) {
-          return json({ success: false, error: "Invalid amount." }, 400);
+          return json({
+            success: false,
+            error: "Invalid amount.",
+          }, 400);
         }
 
         const auth = btoa(
           `${env.RAZORPAY_KEY_ID}:${env.RAZORPAY_KEY_SECRET}`
         );
 
-        const response = await fetch("https://api.razorpay.com/v1/orders", {
-          method: "POST",
-          headers: {
-            "Authorization": `Basic ${auth}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            amount,
-            currency: "INR",
-            receipt: body.receipt || `velyra_${Date.now()}`,
-          }),
-        });
+        const response = await fetch(
+          "https://api.razorpay.com/v1/orders",
+          {
+            method: "POST",
+            headers: {
+              "Authorization": `Basic ${auth}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              amount,
+              currency: "INR",
+              receipt: body.receipt || `velyra_${Date.now()}`,
+            }),
+          }
+        );
 
         const data = await response.json();
 
@@ -72,7 +81,91 @@ export default {
       }
     }
 
-    return json({ success: false, error: "Endpoint not found." }, 404);
+    if (
+      request.method === "POST" &&
+      url.pathname === "/create-subscription"
+    ) {
+      try {
+        if (!env.RAZORPAY_KEY_ID || !env.RAZORPAY_KEY_SECRET) {
+          return json({
+            success: false,
+            error: "Razorpay credentials not configured.",
+          }, 500);
+        }
+
+        const body = await request.json();
+        const planId = body.plan_id;
+        const totalCount = Number(body.total_count || 12);
+
+        const allowedPlans = [
+          "plan_TeQKCsUsp7zDy8",
+          "plan_TeQMNatkZxvwuu",
+        ];
+
+        if (!allowedPlans.includes(planId)) {
+          return json({
+            success: false,
+            error: "Invalid Velyra plan.",
+          }, 400);
+        }
+
+        if (!Number.isInteger(totalCount) || totalCount < 1) {
+          return json({
+            success: false,
+            error: "Invalid subscription count.",
+          }, 400);
+        }
+
+        const auth = btoa(
+          `${env.RAZORPAY_KEY_ID}:${env.RAZORPAY_KEY_SECRET}`
+        );
+
+        const response = await fetch(
+          "https://api.razorpay.com/v1/subscriptions",
+          {
+            method: "POST",
+            headers: {
+              "Authorization": `Basic ${auth}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              plan_id: planId,
+              total_count: totalCount,
+              customer_notify: 1,
+              notes: {
+                firebase_uid: body.firebase_uid || "",
+                app: "Velyra",
+              },
+            }),
+          }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          return json({
+            success: false,
+            error: "Razorpay subscription creation failed.",
+          }, response.status);
+        }
+
+        return json({
+          success: true,
+          subscription: data,
+          key_id: env.RAZORPAY_KEY_ID,
+        });
+      } catch (error) {
+        return json({
+          success: false,
+          error: "Subscription server error.",
+        }, 500);
+      }
+    }
+
+    return json({
+      success: false,
+      error: "Endpoint not found.",
+    }, 404);
   },
 };
 
@@ -84,4 +177,8 @@ function json(data, status = 200) {
       ...corsHeaders,
     },
   });
-}
+  }
+
+
+
+
