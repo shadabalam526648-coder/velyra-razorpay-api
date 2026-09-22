@@ -103,7 +103,7 @@ export default {
 ];
           
     
-        ];
+        
 
         if (!allowedPlans.includes(planId)) {
           return json({
